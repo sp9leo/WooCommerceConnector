@@ -208,6 +208,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "_user_tags": "spletna stran",
             "po_no": "#"+str(woocommerce_order.get("id")),
             "po_date":woocommerce_order.get("date_created"),
+            "order_source":"Spletna stran"
             # disabled discount as WooCommerce will send this both in the item rate and as discount
             #"apply_discount_on": "Net Total",
             #"discount_amount": flt(woocommerce_order.get("discount_total") or 0),
