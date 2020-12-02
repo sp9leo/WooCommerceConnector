@@ -130,6 +130,7 @@ def create_new_customer_of_guest(woocommerce_order):
             "woocommerce_customer_id": cust_id,
             "sync_with_woocommerce": 0,
             "customer_group": woocommerce_settings.customer_group,
+            "territory":"Slovenija",
             #"territory": frappe.utils.nestedset.get_root_of("Territory"),
             "customer_type": _("Individual")
         })
