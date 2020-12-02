@@ -205,8 +205,8 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "ignore_pricing_rule": 1,
             "items": get_order_items(woocommerce_order.get("line_items"), woocommerce_settings),
             "taxes": get_order_taxes(woocommerce_order, woocommerce_settings),
-            "_user_tags": ",spletna stran,".format(woocommerce_order.get("id")),
-            "po_no": "#".format(woocommerce_order.get("id")),
+            "_user_tags": "spletna stran",
+            "po_no": "#".str(woocommerce_order.get("id")),
             # disabled discount as WooCommerce will send this both in the item rate and as discount
             #"apply_discount_on": "Net Total",
             #"discount_amount": flt(woocommerce_order.get("discount_total") or 0),
