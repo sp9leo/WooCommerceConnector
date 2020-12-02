@@ -217,8 +217,9 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
         so.flags.ignore_mandatory = True
 
         # alle orders in ERP = submitted
+#samo shrani  - save without submit
         so.save(ignore_permissions=True)
-        so.submit()
+        #so.submit()
         #if woocommerce_order.get("status") == "on-hold":
         #    so.save(ignore_permissions=True)
         #elif woocommerce_order.get("status") in ("cancelled", "refunded", "failed"):
