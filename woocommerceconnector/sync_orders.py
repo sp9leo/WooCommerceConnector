@@ -18,10 +18,10 @@ def sync_woocommerce_orders():
     frappe.local.form_dict.count_dict["orders"] = 0
     woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
     woocommerce_order_status_for_import = get_woocommerce_order_status_for_import()
-    
+
     for woocommerce_order in get_woocommerce_orders():
         woocommerce_order_status = woocommerce_order.get("status").lower()
-        
+
         if woocommerce_order_status in woocommerce_order_status_for_import:
             so = frappe.db.get_value("Sales Order", {"woocommerce_order_id": woocommerce_order.get("id")}, "name")
             if not so:
@@ -41,7 +41,7 @@ def sync_woocommerce_orders():
                                 request_data=woocommerce_order, exception=True)
             # close this order as synced
             close_synced_woocommerce_order(woocommerce_order.get("id"))
-                
+
 def get_woocommerce_order_status_for_import():
     status_list = []
     _status_list = frappe.db.sql("""SELECT `status` FROM `tabWooCommerce SO Status`""", as_dict=True)
@@ -53,7 +53,7 @@ def valid_customer_and_product(woocommerce_order):
     if woocommerce_order.get("status").lower() == "cancelled":
         return False
     warehouse = frappe.get_doc("WooCommerce Config", "WooCommerce Config").warehouse
-	
+
 	# old function item based on sku
     # for item in woocommerce_order.get("line_items"):
         # if item.get("sku"):
@@ -65,7 +65,7 @@ def valid_customer_and_product(woocommerce_order):
             # make_woocommerce_log(title="Item barcode missing in WooCommerce!", status="Error", method="valid_customer_and_product", message="Item barcode is missing in WooCommerce! The Order {0} will not be imported! For details of order see below".format(woocommerce_order.get("id")),
                 # request_data=woocommerce_order, exception=True)
             # return False
-			
+
 	# new function item based on product id
     for item in woocommerce_order.get("line_items"):
         if item.get("product_id"):
@@ -77,12 +77,12 @@ def valid_customer_and_product(woocommerce_order):
             make_woocommerce_log(title="Item id missing in WooCommerce!", status="Error", method="valid_customer_and_product", message="Item id is missing in WooCommerce! The Order {0} will not be imported! For details of order see below".format(woocommerce_order.get("product_id")),
                 request_data=woocommerce_order, exception=True)
             return False
-    
+
     try:
         customer_id = int(woocommerce_order.get("customer_id"))
     except:
         customer_id = 0
-        
+
     if customer_id > 0:
         if not frappe.db.get_value("Customer", {"woocommerce_customer_id": str(customer_id)}, "name", False,True):
             woocommerce_customer = get_woocommerce_customer(customer_id)
@@ -95,10 +95,10 @@ def valid_customer_and_product(woocommerce_order):
                 if woocommerce_customer["shipping"].get("address_1") == "":
                     woocommerce_customer["shipping"] = woocommerce_order["shipping"]
                     woocommerce_customer["shipping"]["country"] = get_country_from_code( woocommerce_customer.get("shipping").get("country") )
-            
+
             create_customer(woocommerce_customer, woocommerce_customer_list=[])
 
-    if customer_id == 0: # we are dealing with a guest customer 
+    if customer_id == 0: # we are dealing with a guest customer
         # woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
         # if not woocommerce_settings.default_customer:
             # make_woocommerce_log(title="Missing Default Customer", status="Error", method="valid_customer_and_product", message="Missing Default Customer in WooCommerce Config",
@@ -118,10 +118,10 @@ def create_new_customer_of_guest(woocommerce_order):
     import frappe.utils.nestedset
 
     woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
-    
+
     cust_id = "Guest of Order-ID: {0}".format(woocommerce_order.get("id"))
     cust_info = woocommerce_order.get("billing")
-        
+
     try:
         customer = frappe.get_doc({
             "doctype": "Customer",
@@ -135,23 +135,23 @@ def create_new_customer_of_guest(woocommerce_order):
         })
         customer.flags.ignore_mandatory = True
         customer.insert()
-        
+
         if customer:
             create_customer_address(customer, woocommerce_order)
             create_customer_contact(customer, woocommerce_order)
-    
+
         frappe.db.commit()
         frappe.local.form_dict.count_dict["customers"] += 1
         make_woocommerce_log(title="create customer", status="Success", method="create_new_customer_of_guest",
             message= "create customer",request_data=woocommerce_order, exception=False)
-            
+
     except Exception as e:
         if e.args[0] and e.args[0].startswith("402"):
             raise e
         else:
             make_woocommerce_log(title=e.message, status="Error", method="create_new_customer_of_guest", message=frappe.get_traceback(),
                 request_data=woocommerce_order, exception=True)
-        
+
 def get_country_name(code):
     coutry_name = ''
     coutry_names = """SELECT `country_name` FROM `tabCountry` WHERE `code` = '{0}'""".format(code.lower())
@@ -205,6 +205,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "ignore_pricing_rule": 1,
             "items": get_order_items(woocommerce_order.get("line_items"), woocommerce_settings),
             "taxes": get_order_taxes(woocommerce_order, woocommerce_settings),
+            "_user_tags": "#" + woocommerce_order.get("id"),
             # disabled discount as WooCommerce will send this both in the item rate and as discount
             #"apply_discount_on": "Net Total",
             #"discount_amount": flt(woocommerce_order.get("discount_total") or 0),
@@ -277,7 +278,7 @@ def get_fulfillment_items(dn_items, fulfillment_items, woocommerce_settings):
 
     return [dn_item.update({"qty": item.get("quantity")}) for item in fulfillment_items for dn_item in dn_items\
             if get_item_code(item) == dn_item.item_code]
-    
+
 #def get_discounted_amount(order):
     #discounted_amount = flt(order.get("discount_total") or 0)
     #return discounted_amount
@@ -308,17 +309,17 @@ def get_item_code(woocommerce_item):
 def get_order_taxes(woocommerce_order, woocommerce_settings):
     taxes = []
     for tax in woocommerce_order.get("tax_lines"):
-        
+
         woocommerce_tax = get_woocommerce_tax(tax.get("rate_id"))
         rate = woocommerce_tax.get("rate")
         name = woocommerce_tax.get("name")
-        
+
         taxes.append({
             "charge_type": "Actual",
             "account_head": get_tax_account_head(woocommerce_tax),
             "description": "{0} - {1}%".format(name, rate),
             "rate": rate,
-            "tax_amount": flt(tax.get("tax_total") or 0) + flt(tax.get("shipping_tax_total") or 0), 
+            "tax_amount": flt(tax.get("tax_total") or 0) + flt(tax.get("shipping_tax_total") or 0),
             "included_in_print_rate": 0,
             "cost_center": woocommerce_settings.cost_center
         })
@@ -328,7 +329,7 @@ def get_order_taxes(woocommerce_order, woocommerce_settings):
         #     "account_head": get_tax_account_head(woocommerce_tax),
         #     "description": "{0} - {1}%".format(name, rate),
         #     "rate": rate,
-        #     "tax_amount": flt(tax.get("tax_total") or 0) + flt(tax.get("shipping_tax_total") or 0), 
+        #     "tax_amount": flt(tax.get("tax_total") or 0) + flt(tax.get("shipping_tax_total") or 0),
         #     "included_in_print_rate": 1 if woocommerce_order.get("prices_include_tax") else 0,
         #     "cost_center": woocommerce_settings.cost_center
         # })
@@ -395,7 +396,7 @@ def close_synced_woocommerce_orders():
             }
             try:
                 put_request("orders/{0}".format(woocommerce_order.get("id")), order_data)
-                    
+
             except requests.exceptions.HTTPError as e:
                 make_woocommerce_log(title=e, status="Error", method="close_synced_woocommerce_orders", message=frappe.get_traceback(),
                     request_data=woocommerce_order, exception=True)
@@ -406,7 +407,7 @@ def close_synced_woocommerce_order(wooid):
     }
     try:
         put_request("orders/{0}".format(wooid), order_data)
-            
+
     except requests.exceptions.HTTPError as e:
         make_woocommerce_log(title=e.message, status="Error", method="close_synced_woocommerce_order", message=frappe.get_traceback(),
             request_data=woocommerce_order, exception=True)

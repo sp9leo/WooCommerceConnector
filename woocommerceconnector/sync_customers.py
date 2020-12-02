@@ -30,11 +30,11 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
     import frappe.utils.nestedset
 
     woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
-    
+
     cust_name = (woocommerce_customer.get("first_name") + " " + (woocommerce_customer.get("last_name") \
         and  woocommerce_customer.get("last_name") or "")) if woocommerce_customer.get("first_name")\
         else woocommerce_customer.get("email")
-        
+
     try:
         # try to match territory
         country_name = get_country_name(woocommerce_customer["billing"]["country"])
@@ -54,27 +54,27 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
         })
         customer.flags.ignore_mandatory = True
         customer.insert()
-        
+
         if customer:
             create_customer_address(customer, woocommerce_customer)
             create_customer_contact(customer, woocommerce_customer)
-    
+
         woocommerce_customer_list.append(woocommerce_customer.get("id"))
         frappe.db.commit()
         make_woocommerce_log(title="create customer", status="Success", method="create_customer",
             message= "create customer",request_data=woocommerce_customer, exception=False)
-            
+
     except Exception as e:
         if e.args[0] and e.args[0].startswith("402"):
             raise e
         else:
             make_woocommerce_log(title=e, status="Error", method="create_customer", message=frappe.get_traceback(),
                 request_data=woocommerce_customer, exception=True)
-        
+
 def create_customer_address(customer, woocommerce_customer):
     billing_address = woocommerce_customer.get("billing")
     shipping_address = woocommerce_customer.get("shipping")
-    
+
     if billing_address:
         country = get_country_name(billing_address.get("country"))
         if not frappe.db.exists("Country", country):
@@ -106,7 +106,7 @@ def create_customer_address(customer, woocommerce_customer):
     if shipping_address:
         country = get_country_name(shipping_address.get("country"))
         if not frappe.db.exists("Country", country):
-            country = "Switzerland"
+            country = "Slovenija"
         try :
             frappe.get_doc({
                 "doctype": "Address",
@@ -121,12 +121,13 @@ def create_customer_address(customer, woocommerce_customer):
                 "country": country,
                 "phone": shipping_address.get("phone"),
                 "email_id": shipping_address.get("email"),
+                "_user_tags": woocommerce_customer.get("id"),
                 "links": [{
                     "link_doctype": "Customer",
                     "link_name": customer.name
                 }]
             }).insert()
-            
+
         except Exception as e:
             make_woocommerce_log(title=e, status="Error", method="create_customer_address", message=frappe.get_traceback(),
                 request_data=woocommerce_customer, exception=True)
