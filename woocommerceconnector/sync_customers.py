@@ -36,12 +36,13 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
         else woocommerce_customer.get("email")
 
     try:
+        territory = "Slovenija"
         # try to match territory
-        country_name = get_country_name(woocommerce_customer["billing"]["country"])
-        if frappe.db.exists("Territory", country_name):
-            territory = country_name
-        else:
-            territory = "Slovenija"
+        #country_name = get_country_name(woocommerce_customer["billing"]["country"])
+        #if frappe.db.exists("Territory", country_name):
+            #territory = country_name
+        #else:
+
             #territory = frappe.utils.nestedset.get_root_of("Territory")
         customer = frappe.get_doc({
             "doctype": "Customer",
