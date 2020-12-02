@@ -192,6 +192,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             tax_rules = tax_rules[0]['tax_rule']
         else:
             tax_rules = ""
+            wcid = woocommerce_order.get("id")
         so = frappe.get_doc({
             "doctype": "Sales Order",
             "naming_series": woocommerce_settings.sales_order_series or "SO-woocommerce-",
@@ -206,7 +207,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "items": get_order_items(woocommerce_order.get("line_items"), woocommerce_settings),
             "taxes": get_order_taxes(woocommerce_order, woocommerce_settings),
             "_user_tags": woocommerce_order.get("id"),
-            "po_no": str("#" + woocommerce_order.get("id")),
+            "po_no": str("#" + wcid),
             # disabled discount as WooCommerce will send this both in the item rate and as discount
             #"apply_discount_on": "Net Total",
             #"discount_amount": flt(woocommerce_order.get("discount_total") or 0),
