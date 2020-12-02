@@ -41,7 +41,8 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
         if frappe.db.exists("Territory", country_name):
             territory = country_name
         else:
-            territory = frappe.utils.nestedset.get_root_of("Territory")
+            territory = "Slovenija"
+            #territory = frappe.utils.nestedset.get_root_of("Territory")
         customer = frappe.get_doc({
             "doctype": "Customer",
             "name": woocommerce_customer.get("id"),
